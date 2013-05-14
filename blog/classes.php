@@ -91,4 +91,12 @@ function reindex_numeric($arr) {
 	}
 	return $new_arr;
 }
+
+function get_all_tags(){
+	$handle = fopen("TagList", "r");
+	$data = fread($handle,filesize("TagList"));
+	$array = explode("\n", $data);
+	array_pop($array);
+	return $array;
+}
 ?>

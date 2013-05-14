@@ -45,7 +45,7 @@ if ($TagQuery == '') {
 
 while (!empty($loadedPosts)) {
 	$post = array_pop($loadedPosts);
-	print "<div class='post' id='".$post->postId."'><div class='boxclose'>x</div>";
+	print "<div class='post' id='".$post->postId."'><div class='boxclose'></div>";
 	print "<div class='post-header'><div class='post-date'><p>" . $post -> date -> getMonth() . "-" . $post -> date -> getDay() . "</p>" . "<p>" . $post -> date -> getYear() . "</p></div>";
 	print "<h1>" . $post -> title . "</h1></div>";
 	print "<div class='postBody'>" . $post -> getRawFile();

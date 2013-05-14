@@ -17,6 +17,7 @@
 
 	</head>
 	<body>
+		<div id="popup" style="border: solid; position: absolute; width: 500px; height: 400px; background-color: rgb(104, 222, 245); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; left: 50%; top: 50%; z-index: 10; margin-left: -250px; margin-top: -200px; display: block; background-position: initial initial; background-repeat: initial initial;"></div>
 
 		<div id="wrapper-wrapper" class="col_5_5">
 			<div id="wrapper">
