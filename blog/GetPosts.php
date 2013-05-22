@@ -1,65 +1,120 @@
 <?php
-require 'classes.php';
+require_once 'classes.php';
 $PostsPerPage = 5;
-$PostIndex = 0;
+$PostIndex = -1;
 $TagQuery = '';
+$ajax = FALSE;
+$title = "";
 
 foreach ($_GET as $variable => $value) {
-	if ($variable == "PostsPerPage") {
-		$PostsPerPage = $value;
-	} else if ($variable == "PostIndex") {
-		$PostIndex = $value;
-	} else if ($variable == "tag") {
-		$TagQuery = $value;
+	$cleanVal = htmlspecialchars($value);
+	$cleanVar = htmlspecialchars($variable);
+	if ($cleanVar == "PostsPerPage") {
+		$PostsPerPage = $cleanVal;
+	} else if ($cleanVar == "PostIndex") {
+		$PostIndex = $cleanVal;
+	} else if ($cleanVar == "tag") {
+		$TagQuery = $cleanVal;
+	} else if ($cleanVar == "ajax") {
+		$ajax = TRUE;
+	} else if ($cleanVar == "contentonly") {
+		$contentonly = TRUE;
+	} else if ($cleanVar == "title") {
+		$title = str_replace("_", " ", $cleanVal);
 	}
 }
-//print $PostsPerPage;
-//print $PostIndex;
+
 $rawPostList = scandir("posts");
 unset($rawPostList[0]);
 unset($rawPostList[1]);
 $postList = reindex_numeric($rawPostList);
-//print_r($postList);
+
+if ($PostIndex == -1) {
+	$PostIndex = count($postList) - 1;
+}
+
+$totalPosts = count($postList);
+
 $loadedPosts = array();
-
+/*
+ * TODO:Add the following code if title variable matches a post title. can't be added in this file, as the scope would be wrong.
+ * think about setting it as a variable then echo'ing it right before </body>. Move styles to blog_styles.css and add javascript
+ * to blog_javascript. Post inside #highlightedPost is going to need a lot of formatting work (use jqueryScrollPane for overflow), need to be careful to use
+ * #highlighedPost > ... selector so we don't select the post if it's on the main page
+ */
+//<div id="highlighedPost" style="
+//    border: solid;
+//    position: fixed;
+//    left: 20px;
+//    right: 20px;
+//    top: 20px;
+//    bottom: 20px;
+//    background: white;
+//    z-index: 101;
+//    border-radius: 10px;
+//">
+//
+//</div>
 $postsLoaded = 0;
-for ($i = $PostIndex; $postsLoaded < $PostsPerPage && $i<count($postList); $i++) {
-	$post = new BlogPost($postList[$i], $i, $TagQuery);
-	if ($post -> queryMatch == TRUE) {
-		array_push($loadedPosts, $post);
-		$postsLoaded++;
+for ($i = $PostIndex; $i >= 0 /*&& $postsLoaded < $PostsPerPage*/; $i--) { //removed so we can load all posts and check their title and tags
+	$post = NULL;
+	if ($postsLoaded < $PostsPerPage) {
+		$post = new BlogPost($postList[$i], $i, $TagQuery, $title, TRUE);
 	} else {
-		unset($post);
-		//not really needed because of GC
+		$post = new BlogPost($postList[$i], $i, $TagQuery, $title, FALSE);
+	}
+	if ($post->queryMatch == TRUE) {
+		$postsLoaded++;
+	}
+	array_push($loadedPosts, $post);
+}
+
+//$postsLoaded = 0;
+//for ($i = $PostIndex; $postsLoaded < $PostsPerPage && $i<count($postList); $i++) {
+//	$post = new BlogPost($postList[$i], $i, $TagQuery);
+//	if ($post -> queryMatch == TRUE) {
+//		array_push($loadedPosts, $post);
+//		$postsLoaded++;
+//	} else {
+//		unset($post);
+//		//not really needed because of GC
+//	}
+//}
+
+$allCurrentPosts = "";
+
+//TODO: Commented out until there's a good way to show when themed
+/*if (!$ajax) {
+	if ($TagQuery == '') {
+	} else if (empty($loadedPosts)) {
+		$allCurrentPosts .="<h1 style='text-align:center'>No Matches for tag &quot;" . $TagQuery . "&quot;</h1>";
+	} else {
+		$allCurrentPosts .="<h1 style='text-align:center'>Results for tag &quot;" . $TagQuery . "&quot;</h1>";
+
+	}
+}*/
+
+$tagMatches = 0;
+foreach ($loadedPosts as $post) {
+	if ($post->queryMatch) {
+		$tagMatches++;
 	}
 }
 
-if ($TagQuery == '') {
+$postsPrinted = 0;
+$highlightedPost = "";
 
-} else if (empty($loadedPosts)) {
-	print "<h1 style='text-align:center'>No Matches for tag &quot;" . $TagQuery . "&quot;</h1>";
-} else {
-	print "<h1 style='text-align:center'>Results for tag &quot;" . $TagQuery . "&quot;</h1>";
-
-}
-
-while (!empty($loadedPosts)) {
-	$post = array_pop($loadedPosts);
-	print "<div class='post' id='".$post->postId."'><div class='boxclose'></div>";
-	print "<div class='post-header'><div class='post-date'><p>" . $post -> date -> getMonth() . "-" . $post -> date -> getDay() . "</p>" . "<p>" . $post -> date -> getYear() . "</p></div>";
-	print "<h1>" . $post -> title . "</h1></div>";
-	print "<div class='postBody'>" . $post -> getRawFile();
-	print "<h3 class=tags-title>Tags: </h3>";
-	for ($i = 0; $i<count($post->tags);$i++)
-	{
-		print "<a class='tagButton'>".$post->tags[$i]."</a>";
+foreach ($loadedPosts as $post) {
+	if ($title != "" && $post->titleMatch) {
+		$highlightedPost = "<div id='highlightedPost'>" . format_post($post, TRUE, $ajax) . "</div>";
 	}
-	print "</div></div>";
-	/* TODO: add permalink
-	 * :add tags
-	 * :add searching, need to argument search terms and reload page or ajax (give option?)
-	 * :add next page and load more posts buttons at bottom
-	 */
-	//unset($post);  //if php garbage collection is bad
-};
+	if ($post->queryMatch == TRUE && $postsPrinted < $PostsPerPage) {
+		$postsPrinted++;
+		if ($ajax) {
+			print format_post($post, FALSE, $ajax) . "\n";
+		} else {
+			$allCurrentPosts .= format_post($post, FALSE, $ajax) . "\n";
+		}
+	}
+}
 ?>
